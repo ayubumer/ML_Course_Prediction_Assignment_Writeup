@@ -1,0 +1,90 @@
+---
+title: 'Coursera ML Course Prediction Assignment Writeup'
+author: "Mohammad Umer Ayub"
+date: "November 26, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+##Question
+The goal of the project is to predict the manner in which they did the exercise
+```{r}
+
+```
+##Input Data
+```{r}
+##Required Libraries
+library("caret")
+library(ggplot2)
+library(rpart)
+library(randomForest)
+
+##Loading Data
+TrainData<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+
+##Prepressing Data 
+##Removing First 6 columns as of no use for prediction
+TrainData1<-TrainData[,c(-1,-2,-3,-4,-5,-6)]
+##Removing All the columns with null values 
+TrainData2<-TrainData1[,colSums(is.na(TrainData1)) == 0]
+
+```
+
+##Selecting Model
+```{r}
+## Removing Varibale with Zero varaince 
+TrainData3<-TrainData2[,-nearZeroVar(TrainData2)]
+##Creating Partition Train/Test Set
+inTrain <- createDataPartition(y=TrainData3$classe,
+                               p=0.7, list=FALSE)
+Training <- TrainData3[inTrain,]
+Testing <- TrainData3[-inTrain,]
+##creating model Decisiosn Tree
+##Training Model
+TrainModFit <- train(classe ~ .,method="rpart",data=Training)
+##Predicting Model Testing
+TrainTestPred<-predict(TrainModFit,newdata=Testing)
+##To check the Accurancy of Model
+confusionMatrix(TrainTestPred,Testing$classe)
+## Accuracy for decisiosn tree 66% 
+
+##creating model Random Forest Model With Cross validation method with K fold = 3
+##Training Model
+TrainModFitRF <- train(classe~ .,data=Training,method="rf", trcontrol= trainControl(method = "cv",number = 3) )
+##Predicting Model Testing
+TrainTestPredRF<-predict(TrainModFitRF,newdata=Testing)
+##To check the Accurancy of Model
+confusionMatrix(TrainTestPredRF,Testing$classe)
+## Accuracy for Random forest = 99.9% 
+
+```
+
+##Predicting
+```{r}
+##Loading Testing Data 
+TestData<-read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+
+
+TestPred<-predict(TrainModFitRF,newdata=TestData)
+TestPred
+
+```
+
+##Ploting Models
+##Plotting Decision Tree
+```{r}
+plot(TrainModFit)
+```
+
+##Plotting Decision Tree
+```{r}
+plot(TrainModFitRF)
+```
+
+##Conclusion:
+After loading, while analyzing the data observed a lot of columns with huge null values. Removed the Columns with null values. Once had clean data removed all zero Variance Variables in order to have those predictors with variance for optimized prediction. It's a classification Model required right away selected "Decision Tree" to see results. With low percentage (66%) Moved to another model. Random forest with cross validation with value =3 giving good percentage(99.9%).
